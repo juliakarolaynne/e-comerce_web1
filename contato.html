@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <img src="assets/logo/logo preta-01.png" alt="Logo do Comércio Eletrônico">
+
+        <div class="pesquisa">
+            <span><img src="assets/icons/lupa.svg" alt="Lupa"></span>
+            <input type="text" placeholder="O que você está procurando?">
+        </div>
+
+        <nav class="menu">
+            <ul>
+                <li><a href="index.html">Início</a></li>
+                <li><a href="produtos.html">Produtos</a></li>
+                <li><a href="contato.html">Contato</a></li>
+                <li><a href="carrinho.html"><img class="button" src="assets/icons/cart.svg" alt="Carrinho"></a></li>
+            </ul>
+        </nav> 
+
+    </header>
+    <main>
+        <section class="contato">
+            <h2>Entre em contato conosco</h2>
+            <form action="sucesso-contato.html" method="get">
+                <label for="nome">Nome:</label>
+                <input type="text" id="nome" name="nome" required>
+
+                <label for="telefone">Telefone:</label>
+                <input type="tel" id="phone" name="phone" placeholder="(XX) XXXXX-XXXX">
+
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
+
+                <label for="assunto">Assunto:</label>
+                <select id="assunto" name="assunto">
+                    <option value="">Selecione um assunto</option>
+                    <option value="duvida">Dúvida</option>
+                    <option value="sugestao">Sugestão</option>
+                    <option value="reclamacao">Reclamação</option>
+                </select>
+
+                <label for="mensagem">Mensagem:</label>
+                <textarea id="mensagem" name="mensagem" rows="4"></textarea>
+
+                <button type="submit">Enviar</button>
+            </form>
+        </section>
+    </main>
+</body>
+</html>

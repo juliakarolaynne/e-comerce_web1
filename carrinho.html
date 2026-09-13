@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/style.css">
+    <title>Meu carrinho de compras</title>
+</head>
+<body>
+    <header>
+        <img src="assets/logo/logo preta-01.png" alt="Logo do Comércio Eletrônico">
+
+        <div class="pesquisa">
+            <span><img src="assets/icons/lupa.svg" alt="Lupa"></span>
+            <input type="text" placeholder="O que você está procurando?">
+        </div>
+
+        <nav class="menu">
+            <ul>
+                <li><a href="index.html">Início</a></li>
+                <li><a href="produtos.html">Produtos</a></li>
+                <li><a href="contato.html">Contato</a></li>
+                <li><a href="carrinho.html"><img class="button" src="assets/icons/cart.svg" alt="Carrinho"></a></li>
+            </ul>
+        </nav> 
+
+    </header>
+    <main>
+        <h2>Meu Carrinho de Compras</h2>
+        <section class="carrinho">
+            
+            <div class="carrinho-container">
+                <div class="carrinho-item">
+                    <img src="assets/img/nintendo switch lite.jpg" alt="Nintendo Switch Lite">
+                    <h3>Nintendo Switch Lite</h3>
+                    <span class="preco">R$ 1.366,67</span>
+                    <button>Remover do Carrinho</button>
+                </div>
+                <div class="carrinho-item">
+                    <img src="assets/img/nintendo switch.jpg" alt="Nintendo Switch">
+                    <h3>Nintendo Switch</h3>
+                    <span class="preco">R$ 2.299,45</span>
+                    <button>Remover do Carrinho</button>
+                </div>
+            </div>
+            <div class="total">
+                <h3>Total: R$ 3.666,12</h3>
+                <p>Itens no carrinho: 2</p>
+                <p>Em até 10x sem juros <br> 10x de R$ 366,61</p>
+                <form action="sucessoPedido.html" method="get">
+                    <button type="submit">Finalizar Compra</button>
+                </form>
+            </div>
+            
+           
+        </section>
+    
+</body>
+</html>
