@@ -1,1 +1,1 @@
-# e-comerce_web1
+# Projeto de Comércio Eletrônico - Web I

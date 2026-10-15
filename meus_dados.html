@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="icon" type="image/x-icon" href="assets/icons/cart.svg">
+    <title>Meus Dados - Comércio Eletrônico</title>
+</head>
+
+<body class="d-flex flex-column min-vh-100">
+
+    <header>
+        <nav class="navbar navbar-expand-lg py-3 bg-rosa">
+            <div class="container-fluid px-4">
+
+                <a class="navbar-brand" href="index.html">
+                    <img src="assets/logo/logo preta-01.png" alt="Logo IFG / E-commerce" class="logo-nav">
+                </a>
+
+                <button class="navbar-toggler border-dark" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#meuMenu">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="meuMenu">
+
+                    <form class="d-flex mx-auto my-3 my-lg-0 form-pesquisa" role="search" action="produtos.html">
+                        <div class="input-group">
+                            <input class="form-control border-dark border-end-0 shadow-none bg-white" type="search"
+                                placeholder="O que você procura?">
+                            <button class="btn border border-dark border-start-0 bg-white" type="submit">
+                                <img src="assets/icons/lupa.svg" alt="Pesquisar" class="icon-sm">
+                            </button>
+                        </div>
+                    </form>
+
+                    <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center gap-3">
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" href="index.html">Início</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" href="produtos.html">Produtos</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" href="contato.html">Contato</a>
+                        </li>
+                        <li class="nav-item me-2">
+                            <a class="nav-link cart-link-wrapper" href="carrinho.html" title="Meu Carrinho">
+                                <img src="assets/icons/cart.svg" alt="Carrinho" class="icon-md" id="carrinho-icone">
+                                <span id="carrinho-badge" class="badge bg-danger rounded-pill cart-badge-pos d-none">0</span>
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <button type="button" class="btn btn-outline-dark btn-sm rounded-circle p-1 d-flex align-items-center justify-content-center" 
+                                id="btnAlternarTema" onclick="alternarTema()" title="Mudar Tema" style="width: 34px; height: 34px;">
+                                🌙
+                            </button>
+                        </li>
+
+                        <li class="nav-item dropdown border-start border-dark ps-3">
+                            <a class="nav-link dropdown-toggle text-dark" href="#" role="button"
+                                data-bs-toggle="dropdown" id="toggleUsuario">
+                                Olá, Visitante
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end border-dark shadow-sm" id="menuUsuario">
+                                <li><a class="dropdown-item" href="novo_usuario.html">Cadastrar</a></li>
+                                <li><a class="dropdown-item" href="login.html">Entrar</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container my-5 flex-grow-1">
+        <h2 class="text-center fw-bold text-dark mb-5">Meus Dados</h2>
+
+        <div class="row g-4 justify-content-center">
+            
+            <div class="col-md-5">
+                <div class="card border-0 shadow-sm rounded-4 p-4 bg-white text-center h-100">
+                    <div class="my-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="55" height="55" fill="currentColor" class="bi bi-person-circle text-dark" viewBox="0 0 16 16">
+                            <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
+                            <path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"/>
+                        </svg>
+                    </div>
+                    <h4 class="fw-bold mb-2">Dados Pessoais</h4>
+                    <p class="text-muted mb-4">Veja e edite seu nome, e-mail, telefone e senha de acesso.</p>
+                    <a href="dados_pessoais.html" class="btn btn-dark fw-medium mt-auto rounded-3">Acessar Dados Pessoais</a>
+                </div>
+            </div>
+
+            <div class="col-md-5">
+                <div class="card border-0 shadow-sm rounded-4 p-4 bg-white text-center h-100">
+                    <div class="my-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="55" height="55" fill="currentColor" class="bi bi-geo-alt-fill text-dark" viewBox="0 0 16 16">
+                            <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
+                        </svg>
+                    </div>
+                    <h4 class="fw-bold mb-2">Endereços de Entrega</h4>
+                    <p class="text-muted mb-4">Gerencie os endereços salvos para recebimento de pedidos.</p>
+                    <a href="enderecos.html" class="btn btn-dark fw-medium mt-auto rounded-3">Gerenciar Endereços</a>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="d-flex flex-column flex-sm-row justify-content-between align-items-center px-4 py-3 border-top border-dark bg-rosa mt-auto">
+        <p class="mb-0 text-dark fw-medium text-center">© 2024 Comércio Eletrônico. Todos os direitos reservados.</p>
+        <div class="d-flex gap-3 mt-3 mt-sm-0">
+            <a href="https://www.instagram.com" target="_blank" class="text-decoration-none" title="Instagram">
+                <img src="assets/icons/instagram.svg" alt="Instagram" class="icon-md">
+            </a>
+            <a href="https://www.facebook.com" target="_blank" class="text-decoration-none" title="Facebook">
+                <img src="assets/icons/facebook.svg" alt="Facebook" class="icon-md">
+            </a>
+            <a href="https://wa.me/5511999999999" target="_blank" class="text-decoration-none" title="WhatsApp">
+                <img src="assets/icons/whatsapp.svg" alt="WhatsApp" class="icon-md">
+            </a>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>
