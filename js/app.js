@@ -156,6 +156,74 @@ function atualizarCabecalhoCarrinho() {
     }
 }
 
+async function carregarProdutos(termo = '', categoria = '') {
+    const container = document.getElementById('lista-produtos');
+    if (!container) return;
+
+    let url = '/api/products';
+    const params = [];
+    if (termo) params.push(`search=${encodeURIComponent(termo)}`);
+    if (categoria) params.push(`category=${encodeURIComponent(categoria)}`);
+    if (params.length > 0) {
+        url += '?' + params.join('&');
+    }
+
+    container.innerHTML = '<div class="col-12 text-center py-5"><div class="spinner-border text-dark" role="status"></div><p class="mt-2 text-muted">Carregando produtos...</p></div>';
+
+    const resposta = await apiGet(url);
+
+    if (!resposta.ok || !resposta.dados || !resposta.dados.products) {
+        container.innerHTML = '<div class="col-12 text-center py-5"><p class="text-danger fw-bold">Não foi possível carregar os produtos no momento.</p></div>';
+        return;
+    }
+
+    const produtos = resposta.dados.products;
+
+    if (produtos.length === 0) {
+        container.innerHTML = '<div class="col-12 text-center py-5"><p class="text-muted fs-5">Nenhum produto encontrado.</p></div>';
+        return;
+    }
+
+    let html = '';
+    for (let i = 0; i < produtos.length; i++) {
+        const prod = produtos[i];
+        const precoFormatado = Number(prod.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        const esgotado = prod.stock === 0;
+
+        html += `
+            <div class="col-12 col-md-6 col-lg-3 d-flex">
+                <div class="card w-100 border-0 shadow-sm rounded-4 p-2 ${esgotado ? 'opacity-75' : ''}">
+                    <input type="hidden" name="produto_id" value="${prod.id}">
+                    <div class="position-relative">
+                        <img src="${prod.image}" class="card-img-top rounded-3" alt="${prod.name}" style="height: 200px; object-fit: contain;">
+                        ${esgotado ? '<span class="badge bg-danger position-absolute top-0 end-0 m-2">Esgotado</span>' : ''}
+                    </div>
+                    <div class="card-body d-flex flex-column p-3">
+                        <span class="badge bg-light text-dark align-self-start mb-2 border">${prod.category}</span>
+                        <h3 class="card-title fs-5 text-center fw-bold">${prod.name}</h3>
+                        <p class="card-text text-center flex-grow-1 texto-produto text-muted">
+                            ${prod.description}
+                        </p>
+                        <span class="d-block text-center fw-bold fs-5 mb-3 text-dark">${precoFormatado}</span>
+                        ${esgotado ? `
+                            <button type="button" class="btn btn-secondary w-100 mt-auto fw-medium" disabled>
+                                Esgotado
+                            </button>
+                        ` : `
+                            <button type="button" class="btn btn-dark w-100 mt-auto fw-medium"
+                                onclick="adicionarAoCarrinho('${prod.id}', '${prod.name.replace(/'/g, "\\'")}', ${prod.price}, '${prod.image}')">
+                                Adicionar ao Carrinho
+                            </button>
+                        `}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    container.innerHTML = html;
+}
+
 function adicionarAoCarrinho(id, nome, preco, imagem) {
     let carrinho = JSON.parse(localStorage.getItem('carrinho')) || [];
 
@@ -332,6 +400,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (document.getElementById('itens-carrinho')) {
         carregarCarrinho();
+    }
+
+    if (document.getElementById('lista-produtos')) {
+        carregarProdutos();
     }
 
     if (document.getElementById('perfilNome')) {
