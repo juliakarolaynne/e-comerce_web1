@@ -284,6 +284,7 @@ function carregarCarrinho() {
     const valorTotalEl = document.getElementById('resumo-valor-total');
     const parcelamentoEl = document.getElementById('resumo-parcelamento');
     const btnFinalizar = document.getElementById('btnFinalizarCompra');
+    const subtotalEl = document.getElementById('resumo-subtotal');
 
     if (!listaContainer) return;
 
@@ -321,6 +322,7 @@ function carregarCarrinho() {
         `;
         if (totalItensEl) totalItensEl.innerText = '0';
         if (valorTotalEl) valorTotalEl.innerText = 'R$ 0,00';
+        if (subtotalEl) subtotalEl.innerText = 'R$ 0,00';
         if (parcelamentoEl) parcelamentoEl.innerHTML = '10x de R$ 0,00';
         if (btnFinalizar) btnFinalizar.disabled = true;
         return;
@@ -369,12 +371,14 @@ function carregarCarrinho() {
     listaContainer.innerHTML = html;
 
     if (totalItensEl) totalItensEl.innerText = qtdTotal;
-    if (valorTotalEl) valorTotalEl.innerText = `R$ ${totalGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    if (subtotalEl) subtotalEl.innerText = `R$ ${totalGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     if (parcelamentoEl) {
         const parcela = totalGeral / 10;
         parcelamentoEl.innerHTML = `10x sem juros<br>de R$ ${parcela.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
     if (btnFinalizar) btnFinalizar.disabled = false;
+
+    atualizarTotalComFrete();
 }
 
 function alterarQuantidade(id, delta) {
@@ -398,6 +402,96 @@ function removerDoCarrinho(id) {
     localStorage.setItem('carrinho', JSON.stringify(carrinho));
     atualizarCabecalhoCarrinho();
     carregarCarrinho();
+}
+
+let freteSelecionado = null;
+
+async function calcularFrete() {
+    const campoCep = document.getElementById('campoCep');
+    const resultadoDiv = document.getElementById('resultado-frete');
+
+    if (!campoCep || !resultadoDiv) return;
+
+    const cep = campoCep.value.trim();
+
+    if (!cep) {
+        alert('Digite um CEP para calcular o frete!');
+        return;
+    }
+
+    resultadoDiv.innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm text-dark" role="status"></div> Calculando...</div>';
+
+    const resposta = await apiPost('/api/frete', { cep: cep });
+
+    if (resposta.status === 200 && resposta.dados && resposta.dados.fretes) {
+        const fretes = resposta.dados.fretes;
+        let html = '';
+
+        for (let i = 0; i < fretes.length; i++) {
+            const f = fretes[i];
+            const valorFormatado = Number(f.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+            html += `
+                <div class="form-check border rounded-3 p-2 ps-4 mb-1">
+                    <input class="form-check-input" type="radio" name="freteOpcao" id="frete${i}" 
+                        value="${f.valor}" data-servico="${f.servico}" onchange="selecionarFrete(${f.valor}, '${f.servico}')">
+                    <label class="form-check-label small w-100" for="frete${i}">
+                        <strong>${f.servico}</strong> - ${valorFormatado}<br>
+                        <span class="text-muted">${f.prazo}</span>
+                    </label>
+                </div>
+            `;
+        }
+
+        resultadoDiv.innerHTML = html;
+    } else if (resposta.status === 400) {
+        alert('CEP inválido! Use o formato 00000-000.');
+        resultadoDiv.innerHTML = '';
+    } else if (resposta.status === 404) {
+        alert('CEP não encontrado na base de dados.');
+        resultadoDiv.innerHTML = '';
+    } else if (resposta.status === 422) {
+        alert('Não realizamos entregas para esta região.');
+        resultadoDiv.innerHTML = '';
+    } else {
+        alert(resposta.mensagem || 'Erro ao calcular frete.');
+        resultadoDiv.innerHTML = '';
+    }
+}
+
+function selecionarFrete(valor, servico) {
+    freteSelecionado = { valor: valor, servico: servico };
+    atualizarTotalComFrete();
+}
+
+function atualizarTotalComFrete() {
+    const carrinho = JSON.parse(localStorage.getItem('carrinho')) || [];
+    let subtotal = 0;
+    for (let i = 0; i < carrinho.length; i++) {
+        subtotal += carrinho[i].preco * carrinho[i].quantidade;
+    }
+
+    const valorTotalEl = document.getElementById('resumo-valor-total');
+    const linhaFrete = document.getElementById('linha-frete');
+    const resumoFrete = document.getElementById('resumo-frete');
+    const parcelamentoEl = document.getElementById('resumo-parcelamento');
+
+    let total = subtotal;
+
+    if (freteSelecionado && linhaFrete && resumoFrete) {
+        total += freteSelecionado.valor;
+        resumoFrete.innerText = `R$ ${freteSelecionado.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        linhaFrete.classList.remove('d-none');
+    }
+
+    if (valorTotalEl) {
+        valorTotalEl.innerText = `R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+
+    if (parcelamentoEl) {
+        const parcela = total / 10;
+        parcelamentoEl.innerHTML = `10x sem juros<br>de R$ ${parcela.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
 }
 
 function finalizarCompra(event) {
