@@ -34,12 +34,12 @@ function atualizarCabecalhoUsuario() {
 
     if (!dropdownMenu || !dropdownToggle) return;
 
-    if (usuarioLogado && usuarioLogado.nome) {
-        const primeiroNome = usuarioLogado.nome.split(' ')[0];
+    if (usuarioLogado && (usuarioLogado.nome || usuarioLogado.email)) {
+        const primeiroNome = (usuarioLogado.nome || usuarioLogado.email.split('@')[0]).split(' ')[0];
         dropdownToggle.innerHTML = `Olá, ${primeiroNome}`;
         
         dropdownMenu.innerHTML = `
-            <li><a class="dropdown-item" href="meus_dados.html">Meus Dados</a></li>
+            <li><a class="dropdown-item" href="dados_pessoais.html">Meus Dados</a></li>
             <li><a class="dropdown-item" href="meus_pedidos.html">Meus Pedidos</a></li>
             <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item text-danger fw-bold" href="#" onclick="logout(); return false;">Sair</a></li>
@@ -106,7 +106,7 @@ async function cadastrarUsuario(event) {
     return false;
 }
 
-function realizarLogin(event) {
+async function realizarLogin(event) {
     if (event) event.preventDefault();
 
     const email = document.getElementById('email').value.trim();
@@ -117,21 +117,24 @@ function realizarLogin(event) {
         return false;
     }
 
-    let usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+    const resposta = await apiPost('/api/login', {
+        email: email,
+        senha: senha
+    });
 
-    const usuarioValido = usuarios.find(u => u.email.toLowerCase() === email.toLowerCase() && u.senha === senha);
-
-    if (usuarioValido) {
-        localStorage.setItem('usuarioLogado', JSON.stringify({
-            nome: usuarioValido.nome,
-            email: usuarioValido.email,
-            telefone: usuarioValido.telefone
-        }));
-        alert(`Bem-vindo(a), ${usuarioValido.nome}!`);
+    if (resposta.status === 200) {
+        const usuario = (resposta.dados && resposta.dados.usuario) ? resposta.dados.usuario : { nome: email.split('@')[0], email: email };
+        localStorage.setItem('usuarioLogado', JSON.stringify(usuario));
+        alert(resposta.mensagem || 'Login realizado com sucesso!');
         window.location.href = 'index.html';
+    } else if (resposta.status === 400) {
+        alert('E-mail ou senha ausentes. Verifique os campos preenchidos.');
+    } else if (resposta.status === 401) {
+        alert('Credenciais inválidas! Verifique o e-mail e a senha digitados.');
     } else {
-        alert('E-mail ou senha incorretos! Verifique os dados ou cadastre-se.');
+        alert(resposta.mensagem || 'Erro ao realizar login. Tente novamente.');
     }
+
     return false;
 }
 
@@ -323,18 +326,6 @@ function finalizarCompra(event) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    if (localStorage.getItem('usuarios') === null) {
-        const usuariosIniciais = [
-            {
-                nome: 'Júlia Silva',
-                email: 'julia@email.com',
-                telefone: '(61) 98888-7777',
-                senha: '123'
-            }
-        ];
-        localStorage.setItem('usuarios', JSON.stringify(usuariosIniciais));
-    }
-
     aplicarTemaSalvo();
     atualizarCabecalhoUsuario();
     atualizarCabecalhoCarrinho();
