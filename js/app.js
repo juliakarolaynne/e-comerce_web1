@@ -156,6 +156,25 @@ function atualizarCabecalhoCarrinho() {
     }
 }
 
+let temporizadorDebounce = null;
+
+function buscarComDebounce() {
+    clearTimeout(temporizadorDebounce);
+    temporizadorDebounce = setTimeout(() => {
+        aplicarFiltrosProdutos();
+    }, 400);
+}
+
+function aplicarFiltrosProdutos() {
+    const campoBusca = document.getElementById('campoBusca');
+    const filtroCategoria = document.getElementById('filtroCategoria');
+
+    const termo = campoBusca ? campoBusca.value.trim() : '';
+    const categoria = filtroCategoria ? filtroCategoria.value : '';
+
+    carregarProdutos(termo, categoria);
+}
+
 async function carregarProdutos(termo = '', categoria = '') {
     const container = document.getElementById('lista-produtos');
     if (!container) return;
@@ -403,7 +422,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (document.getElementById('lista-produtos')) {
-        carregarProdutos();
+        const urlParams = new URLSearchParams(window.location.search);
+        const termoUrl = urlParams.get('search') || urlParams.get('busca') || '';
+        const categoriaUrl = urlParams.get('category') || urlParams.get('categoria') || '';
+
+        const campoBusca = document.getElementById('campoBusca');
+        const filtroCategoria = document.getElementById('filtroCategoria');
+
+        if (campoBusca && termoUrl) campoBusca.value = termoUrl;
+        if (filtroCategoria && categoriaUrl) filtroCategoria.value = categoriaUrl;
+
+        carregarProdutos(termoUrl, categoriaUrl);
     }
 
     if (document.getElementById('perfilNome')) {

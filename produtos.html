@@ -33,11 +33,20 @@
 
                 <div class="collapse navbar-collapse" id="meuMenu">
 
-                    <form class="d-flex mx-auto my-3 my-lg-0 form-pesquisa" role="search" action="produtos.html">
+                    <form class="d-flex flex-column flex-sm-row gap-2 mx-auto my-3 my-lg-0 form-pesquisa" style="max-width: 620px;" role="search" onsubmit="event.preventDefault(); aplicarFiltrosProdutos();">
+                        <select class="form-select border-dark shadow-none bg-white rounded-pill px-3" id="filtroCategoria" style="min-width: 170px;" onchange="aplicarFiltrosProdutos()">
+                            <option value="">Todas as Categorias</option>
+                            <option value="Vestuário">Vestuário</option>
+                            <option value="Eletrônicos">Eletrônicos</option>
+                            <option value="Calçados">Calçados</option>
+                            <option value="Eletrodomésticos">Eletrodomésticos</option>
+                            <option value="Acessórios">Acessórios</option>
+                            <option value="Móveis">Móveis</option>
+                        </select>
                         <div class="input-group">
                             <input class="form-control border-dark border-end-0 shadow-none bg-white" type="search"
-                                placeholder="O que você procura?">
-                            <button class="btn border border-dark border-start-0 bg-white" type="submit">
+                                id="campoBusca" placeholder="O que você procura?" oninput="buscarComDebounce()">
+                            <button class="btn border border-dark border-start-0 bg-white" type="submit" title="Pesquisar">
                                 <img src="assets/icons/lupa.svg" alt="Pesquisar" class="icon-sm">
                             </button>
                         </div>
