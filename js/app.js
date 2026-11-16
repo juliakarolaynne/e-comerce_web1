@@ -59,44 +59,50 @@ function logout() {
     window.location.href = 'index.html';
 }
 
-function cadastrarUsuario(event) {
+async function cadastrarUsuario(event) {
     if (event) event.preventDefault();
 
     const nome = document.getElementById('nomeCadastro').value.trim();
     const email = document.getElementById('emailCadastro').value.trim();
     const telefone = document.getElementById('telefoneCadastro') ? document.getElementById('telefoneCadastro').value.trim() : '';
     const senha = document.getElementById('senhaCadastro').value;
-    const confirmaSenha = document.getElementById('confirmaSenha').value;
+    const confirmacaoSenha = document.getElementById('confirmaSenha').value;
 
-    if (!nome || !email || !senha || !confirmaSenha) {
+    if (!nome || !email || !senha || !confirmacaoSenha) {
         alert('Por favor, preencha todos os campos obrigatórios!');
         return false;
     }
 
-    if (senha !== confirmaSenha) {
+    if (senha !== confirmacaoSenha) {
         alert('Erro: A confirmação de senha não coincide com a senha digitada!');
         return false;
     }
 
-    if (senha.length < 4) {
-        alert('A senha deve ter pelo menos 4 caracteres!');
+    if (senha.length < 6) {
+        alert('A senha deve ter pelo menos 6 caracteres!');
         return false;
     }
 
-    let usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+    const resposta = await apiPost('/api/register', {
+        nome: nome,
+        email: email,
+        senha: senha,
+        confirmacaoSenha: confirmacaoSenha
+    });
 
-    const jaExiste = usuarios.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (jaExiste) {
-        alert('Atenção: Já existe um usuário cadastrado com este e-mail!');
-        return false;
+    if (resposta.status === 201) {
+        alert('Cadastro realizado com sucesso! Faça login para continuar.');
+        window.location.href = 'login.html';
+    } else if (resposta.status === 400) {
+        alert(resposta.mensagem || 'Dados inválidos. Verifique os campos preenchidos.');
+    } else if (resposta.status === 409) {
+        alert('Atenção: Este e-mail já está cadastrado!');
+    } else if (resposta.status === 422) {
+        alert('A senha deve ter pelo menos 6 caracteres!');
+    } else {
+        alert(resposta.mensagem || 'Erro ao realizar cadastro. Tente novamente.');
     }
 
-    const novoUsuario = { nome, email, telefone, senha };
-    usuarios.push(novoUsuario);
-    localStorage.setItem('usuarios', JSON.stringify(usuarios));
-
-    alert('Cadastro realizado com sucesso! Faça login para continuar.');
-    window.location.href = 'login.html';
     return false;
 }
 
