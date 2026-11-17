@@ -570,16 +570,133 @@ function atualizarTotalComFrete() {
     }
 }
 
-function finalizarCompra(event) {
+function gerarIdPedido() {
+    // Formato PED-AAAA-MMDD-HHMMSS
+    const now = new Date();
+    const pad = (n) => n.toString().padStart(2, '0');
+    const id = `PED-${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+    return id;
+}
+
+function salvarPedidoLocal(pedido) {
+    const pedidos = JSON.parse(localStorage.getItem('pedidos')) || [];
+    pedidos.push(pedido);
+    localStorage.setItem('pedidos', JSON.stringify(pedidos));
+}
+
+async function finalizarCompra(event) {
     if (event) event.preventDefault();
     let carrinho = JSON.parse(localStorage.getItem('carrinho')) || [];
     if (carrinho.length === 0) {
         alert('Seu carrinho está vazio!');
         return false;
     }
-    localStorage.removeItem('carrinho');
-    window.location.href = 'sucesso-pedido.html';
+
+    // coleta dados de pagamento
+    const metodo = document.getElementById('metodoPagamento')?.value || 'Pix';
+    const numeroCartao = (metodo === 'Cartão') ? document.getElementById('numeroCartao')?.value.trim() : null;
+
+    // calcula total final
+    let subtotal = 0;
+    for (let i = 0; i < carrinho.length; i++) {
+        subtotal += carrinho[i].preco * carrinho[i].quantidade;
+    }
+    const total = subtotal + (freteSelecionado ? freteSelecionado.valor : 0) - (valorDesconto || 0);
+
+    const payload = {
+        itens: carrinho.map(i => ({ id: i.id, quantidade: i.quantidade })),
+        cep: document.getElementById('campoCep')?.value.trim() || '',
+        metodoPagamento: metodo,
+        numeroCartao: numeroCartao,
+        total: total
+    };
+
+    const resposta = await apiPost('/api/checkout', payload);
+
+    if (resposta.status === 201 && resposta.dados && resposta.dados.pedido) {
+        const pedido = {
+            id: gerarIdPedido(),
+            data: new Date().toISOString(),
+            total: total,
+            status: 'Processando',
+            itens: carrinho,
+            frete: freteSelecionado ? freteSelecionado.valor : 0,
+            desconto: valorDesconto || 0,
+            pagamento: metodo
+        };
+        salvarPedidoLocal(pedido);
+        localStorage.removeItem('carrinho');
+        window.location.href = 'sucesso-pedido.html';
+        return false;
+    } else if (resposta.status === 400) {
+        alert('Faltam dados para o checkout.');
+    } else if (resposta.status === 402) {
+        alert('Cartão recusado (termina em 0000).');
+    } else if (resposta.status === 404) {
+        alert('Um dos produtos não está mais disponível.');
+    } else if (resposta.status === 422) {
+        alert('Estoque insuficiente para algum item.');
+    } else {
+        alert(resposta.mensagem || 'Erro ao finalizar a compra.');
+    }
     return false;
+}
+
+function carregarPedidos() {
+    const container = document.getElementById('lista-pedidos');
+    if (!container) return;
+    const pedidos = JSON.parse(localStorage.getItem('pedidos')) || [];
+    if (pedidos.length === 0) {
+        container.innerHTML = `<p class="text-center text-muted">Nenhum pedido encontrado.</p>`;
+        return;
+    }
+    let html = '';
+    for (let p of pedidos) {
+        const badgeColor = p.status === 'Entregue' ? 'bg-success' : (p.status === 'Cancelado' ? 'bg-danger' : 'bg-warning text-dark');
+        html += `
+            <div class="card border-0 shadow-sm rounded-4 mb-4 p-4 bg-white">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3">
+                    <div>
+                        <span class="badge ${badgeColor} mb-2">${p.status}</span>
+                        <h5 class="fw-bold mb-0">Pedido #${p.id}</h5>
+                        <small class="text-muted">Realizado em ${new Date(p.data).toLocaleDateString('pt-BR')}</small>
+                    </div>
+                    <div class="mt-2 mt-md-0 text-md-end">
+                        <span class="fs-5 fw-bold text-dark d-block">Total: R$ ${p.total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <a href="pedido.html?id=${p.id}" class="btn btn-outline-dark btn-sm mt-1">Ver Detalhes</a>
+                        ${p.status === 'Processando' ? `<button class="btn btn-outline-danger btn-sm mt-1 ms-1" onclick="cancelarPedido('${p.id}')">Cancelar</button>` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    container.innerHTML = html;
+}
+
+async function cancelarPedido(pedidoId) {
+    if (!confirm('Deseja realmente cancelar este pedido?')) return;
+    const resposta = await apiDelete('/api/pedido', { protocolo: pedidoId });
+    if (resposta.status === 200) {
+        // atualizar localStorage
+        let pedidos = JSON.parse(localStorage.getItem('pedidos')) || [];
+        pedidos = pedidos.map(p => p.id === pedidoId ? { ...p, status: 'Cancelado' } : p);
+        localStorage.setItem('pedidos', JSON.stringify(pedidos));
+        alert('Pedido cancelado com sucesso.');
+        carregarPedidos();
+    } else if (resposta.status === 400) {
+        alert('Protocolo não informado.');
+    } else if (resposta.status === 404) {
+        alert('Pedido não encontrado.');
+    } else if (resposta.status === 422) {
+        alert('Pedido já enviado, não pode ser cancelado.');
+    } else {
+        alert(resposta.mensagem || 'Erro ao cancelar o pedido.');
+    }
+}
+
+// Detecta página para carregar pedidos
+if (document.getElementById('lista-pedidos')) {
+    carregarPedidos();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
