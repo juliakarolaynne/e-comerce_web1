@@ -642,7 +642,38 @@ async function finalizarCompra(event) {
     return false;
 }
 
-function carregarPedidos() {
+
+async function atualizarPerfil(event) {
+    if (event) event.preventDefault();
+    const nome = document.getElementById('perfilNome')?.value.trim();
+    const email = document.getElementById('perfilEmail')?.value.trim();
+    const telefone = document.getElementById('perfilTelefone')?.value.trim();
+
+    if (!nome || !email) {
+        alert('Nome e e‑mail são obrigatórios.');
+        return false;
+    }
+
+    const payload = { nome, email };
+    if (telefone) payload.telefone = telefone;
+
+    const resposta = await apiPut('/api/user', payload);
+
+    if (resposta.status === 200 && resposta.dados) {
+        // Atualiza o usuário no localStorage
+        const usuario = { nome, email, telefone };
+        localStorage.setItem('usuarioLogado', JSON.stringify(usuario));
+        alert('Dados atualizados com sucesso!');
+    } else if (resposta.status === 400) {
+        alert(resposta.mensagem || 'Campos obrigatórios ausentes ou formato inválido.');
+    } else if (resposta.status === 409) {
+        alert(resposta.mensagem || 'Este e‑mail já está em uso por outro usuário.');
+    } else {
+        alert(resposta.mensagem || 'Erro ao atualizar perfil.');
+    }
+    return false;
+}
+
     const container = document.getElementById('lista-pedidos');
     if (!container) return;
     const pedidos = JSON.parse(localStorage.getItem('pedidos')) || [];
