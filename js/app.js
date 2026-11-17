@@ -405,6 +405,7 @@ function removerDoCarrinho(id) {
 }
 
 let freteSelecionado = null;
+let cupomAplicado = null;
 
 async function calcularFrete() {
     const campoCep = document.getElementById('campoCep');
@@ -464,6 +465,55 @@ function selecionarFrete(valor, servico) {
     atualizarTotalComFrete();
 }
 
+async function aplicarCupom() {
+    const campoCupom = document.getElementById('campoCupom');
+    const resultadoCupom = document.getElementById('resultado-cupom');
+
+    if (!campoCupom) return;
+
+    const codigo = campoCupom.value.trim().toUpperCase();
+
+    if (!codigo) {
+        alert('Digite um código de cupom!');
+        return;
+    }
+
+    const carrinho = JSON.parse(localStorage.getItem('carrinho')) || [];
+    let subtotal = 0;
+    for (let i = 0; i < carrinho.length; i++) {
+        subtotal += carrinho[i].preco * carrinho[i].quantidade;
+    }
+
+    const resposta = await apiPost('/api/cupom', { codigo: codigo, subtotal: subtotal });
+
+    if (resposta.status === 200 && resposta.dados && resposta.dados.cupom) {
+        const cupom = resposta.dados.cupom;
+        cupomAplicado = cupom;
+
+        if (resultadoCupom) {
+            resultadoCupom.innerHTML = `<span class="text-success small fw-bold">✓ ${resposta.dados.mensagem}</span>`;
+        }
+
+        campoCupom.disabled = true;
+        atualizarTotalComFrete();
+    } else if (resposta.status === 400) {
+        alert(resposta.mensagem || 'O código do cupom é obrigatório.');
+        if (resultadoCupom) resultadoCupom.innerHTML = '';
+    } else if (resposta.status === 404) {
+        alert('Cupom inválido ou não encontrado.');
+        if (resultadoCupom) resultadoCupom.innerHTML = '';
+    } else if (resposta.status === 410) {
+        alert('Este cupom já expirou.');
+        if (resultadoCupom) resultadoCupom.innerHTML = '';
+    } else if (resposta.status === 422) {
+        alert(resposta.mensagem || 'Subtotal insuficiente para este cupom.');
+        if (resultadoCupom) resultadoCupom.innerHTML = '';
+    } else {
+        alert(resposta.mensagem || 'Erro ao aplicar cupom.');
+        if (resultadoCupom) resultadoCupom.innerHTML = '';
+    }
+}
+
 function atualizarTotalComFrete() {
     const carrinho = JSON.parse(localStorage.getItem('carrinho')) || [];
     let subtotal = 0;
@@ -474,15 +524,41 @@ function atualizarTotalComFrete() {
     const valorTotalEl = document.getElementById('resumo-valor-total');
     const linhaFrete = document.getElementById('linha-frete');
     const resumoFrete = document.getElementById('resumo-frete');
+    const linhaDesconto = document.getElementById('linha-desconto');
+    const resumoDesconto = document.getElementById('resumo-desconto');
     const parcelamentoEl = document.getElementById('resumo-parcelamento');
 
-    let total = subtotal;
+    let valorFrete = 0;
+    let valorDesconto = 0;
 
     if (freteSelecionado && linhaFrete && resumoFrete) {
-        total += freteSelecionado.valor;
-        resumoFrete.innerText = `R$ ${freteSelecionado.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        valorFrete = freteSelecionado.valor;
+
+        if (cupomAplicado && cupomAplicado.tipo === 'frete_gratis') {
+            valorFrete = 0;
+            resumoFrete.innerHTML = `<s class="text-muted">R$ ${freteSelecionado.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</s> <span class="text-success">Grátis</span>`;
+        } else {
+            resumoFrete.innerText = `R$ ${valorFrete.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+
         linhaFrete.classList.remove('d-none');
     }
+
+    if (cupomAplicado && linhaDesconto && resumoDesconto) {
+        if (cupomAplicado.tipo === 'percentual') {
+            valorDesconto = subtotal * (cupomAplicado.desconto / 100);
+        } else if (cupomAplicado.tipo === 'fixo') {
+            valorDesconto = cupomAplicado.desconto;
+        }
+
+        if (cupomAplicado.tipo !== 'frete_gratis') {
+            resumoDesconto.innerText = `- R$ ${valorDesconto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            linhaDesconto.classList.remove('d-none');
+        }
+    }
+
+    let total = subtotal + valorFrete - valorDesconto;
+    if (total < 0) total = 0;
 
     if (valorTotalEl) {
         valorTotalEl.innerText = `R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

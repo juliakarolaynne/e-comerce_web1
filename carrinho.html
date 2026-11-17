@@ -107,11 +107,25 @@
                         <div id="resultado-frete" class="mt-2"></div>
                     </div>
 
+                    <div class="mb-3">
+                        <label for="campoCupom" class="form-label fw-medium small">Cupom de Desconto:</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control border-dark" id="campoCupom" placeholder="Digite seu cupom">
+                            <button class="btn btn-outline-dark" type="button" onclick="aplicarCupom()">Aplicar</button>
+                        </div>
+                        <div id="resultado-cupom" class="mt-1"></div>
+                    </div>
+
                     <hr class="text-muted">
 
                     <div class="d-flex justify-content-between mb-2">
                         <span class="text-muted">Subtotal:</span>
                         <span class="fw-bold" id="resumo-subtotal">R$ 0,00</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-2 d-none" id="linha-desconto">
+                        <span class="text-muted">Desconto:</span>
+                        <span class="fw-bold text-success" id="resumo-desconto">- R$ 0,00</span>
                     </div>
 
                     <div class="d-flex justify-content-between mb-2 d-none" id="linha-frete">
