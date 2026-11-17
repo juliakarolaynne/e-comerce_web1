@@ -115,6 +115,18 @@
                         </div>
                         <div id="resultado-cupom" class="mt-1"></div>
                     </div>
+                    <div class="mb-3">
+                        <label for="metodoPagamento" class="form-label fw-medium small">Forma de pagamento:</label>
+                        <select class="form-select" id="metodoPagamento" onchange="alterarMetodoPagamento()">
+                            <option value="Pix">Pix</option>
+                            <option value="Boleto">Boleto</option>
+                            <option value="Cartão">Cartão</option>
+                        </select>
+                    </div>
+                    <div class="mb-3 d-none" id="divNumeroCartao">
+                        <label for="numeroCartao" class="form-label fw-medium small">Número do cartão:</label>
+                        <input type="text" class="form-control border-dark" id="numeroCartao" placeholder="XXXX XXXX XXXX XXXX" maxlength="19">
+                    </div>
 
                     <hr class="text-muted">
 
