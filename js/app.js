@@ -406,6 +406,7 @@ function removerDoCarrinho(id) {
 
 let freteSelecionado = null;
 let cupomAplicado = null;
+let valorDesconto = 0;
 
 async function calcularFrete() {
     const campoCep = document.getElementById('campoCep');
@@ -529,7 +530,7 @@ function atualizarTotalComFrete() {
     const parcelamentoEl = document.getElementById('resumo-parcelamento');
 
     let valorFrete = 0;
-    let valorDesconto = 0;
+    valorDesconto = 0;
 
     if (freteSelecionado && linhaFrete && resumoFrete) {
         valorFrete = freteSelecionado.valor;
@@ -607,6 +608,9 @@ function carregarEnderecos() {
 function abrirModalEndereco(id = null) {
     const modal = new bootstrap.Modal(document.getElementById('modalEndereco'));
     const form = document.getElementById('formEndereco');
+    const statusEl = document.getElementById('status-viacep');
+    if (statusEl) statusEl.innerText = '';
+
     if (id) {
         const end = JSON.parse(localStorage.getItem('enderecos')).find(e => e.id === id);
         if (end) {
@@ -625,6 +629,63 @@ function abrirModalEndereco(id = null) {
         document.getElementById('modalEnderecoLabel').innerText = 'Cadastrar Endereço';
     }
     modal.show();
+}
+
+function formatarMascaraCep(input) {
+    let v = input.value.replace(/\D/g, '');
+    if (v.length > 5) {
+        v = v.substring(0, 5) + '-' + v.substring(5, 8);
+    }
+    input.value = v;
+}
+
+async function buscarCepViaCep() {
+    const campoCep = document.getElementById('endereco-cep');
+    if (!campoCep) return;
+    const cepLimpo = campoCep.value.replace(/\D/g, '');
+
+    if (cepLimpo.length !== 8) return;
+
+    const campoRua = document.getElementById('endereco-rua');
+    const campoCidade = document.getElementById('endereco-cidade');
+    const campoEstado = document.getElementById('endereco-estado');
+    const campoNumero = document.getElementById('endereco-numero');
+    const statusEl = document.getElementById('status-viacep');
+
+    if (statusEl) {
+        statusEl.className = 'text-primary d-block mt-1';
+        statusEl.innerText = 'Consultando ViaCEP...';
+    }
+
+    try {
+        const resposta = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+        const dados = await resposta.json();
+
+        if (dados.erro) {
+            if (statusEl) {
+                statusEl.className = 'text-danger d-block mt-1';
+                statusEl.innerText = 'CEP não encontrado no ViaCEP.';
+            }
+            alert('CEP não encontrado pelo serviço ViaCEP.');
+            return;
+        }
+
+        if (campoRua && dados.logradouro) campoRua.value = dados.logradouro;
+        if (campoCidade && dados.localidade) campoCidade.value = dados.localidade;
+        if (campoEstado && dados.uf) campoEstado.value = dados.uf;
+
+        if (statusEl) {
+            statusEl.className = 'text-success d-block mt-1';
+            statusEl.innerText = 'Endereço localizado com sucesso!';
+        }
+
+        if (campoNumero) campoNumero.focus();
+    } catch (erro) {
+        if (statusEl) {
+            statusEl.className = 'text-danger d-block mt-1';
+            statusEl.innerText = 'Erro ao consultar o ViaCEP.';
+        }
+    }
 }
 
 function salvarEndereco() {
@@ -675,6 +736,17 @@ function salvarPedidoLocal(pedido) {
     localStorage.setItem('pedidos', JSON.stringify(pedidos));
 }
 
+function alterarMetodoPagamento() {
+    const metodo = document.getElementById('metodoPagamento')?.value;
+    const divCartao = document.getElementById('divNumeroCartao');
+    if (!divCartao) return;
+    if (metodo === 'Cartão' || metodo === 'cartao') {
+        divCartao.classList.remove('d-none');
+    } else {
+        divCartao.classList.add('d-none');
+    }
+}
+
 async function finalizarCompra(event) {
     if (event) event.preventDefault();
     let carrinho = JSON.parse(localStorage.getItem('carrinho')) || [];
@@ -683,11 +755,22 @@ async function finalizarCompra(event) {
         return false;
     }
 
-    // coleta dados de pagamento
-    const metodo = document.getElementById('metodoPagamento')?.value || 'Pix';
-    const numeroCartao = (metodo === 'Cartão') ? document.getElementById('numeroCartao')?.value.trim() : null;
+    const cep = document.getElementById('campoCep')?.value.trim() || '';
+    if (!cep) {
+        alert('Por favor, informe o CEP para entrega!');
+        document.getElementById('campoCep')?.focus();
+        return false;
+    }
 
-    // calcula total final
+    const metodo = document.getElementById('metodoPagamento')?.value || 'Pix';
+    const numeroCartao = (metodo === 'Cartão' || metodo === 'cartao') ? document.getElementById('numeroCartao')?.value.trim() : null;
+
+    if ((metodo === 'Cartão' || metodo === 'cartao') && !numeroCartao) {
+        alert('Por favor, digite o número do cartão.');
+        document.getElementById('numeroCartao')?.focus();
+        return false;
+    }
+
     let subtotal = 0;
     for (let i = 0; i < carrinho.length; i++) {
         subtotal += carrinho[i].preco * carrinho[i].quantidade;
@@ -695,38 +778,43 @@ async function finalizarCompra(event) {
     const total = subtotal + (freteSelecionado ? freteSelecionado.valor : 0) - (valorDesconto || 0);
 
     const payload = {
-        itens: carrinho.map(i => ({ id: i.id, quantidade: i.quantidade })),
-        cep: document.getElementById('campoCep')?.value.trim() || '',
-        metodoPagamento: metodo,
-        numeroCartao: numeroCartao,
-        total: total
+        itens: carrinho.map(i => ({ id: Number(i.id) || i.id, quantidade: i.quantidade })),
+        cep: cep,
+        metodoPagamento: metodo.toLowerCase() === 'cartão' ? 'cartao' : metodo.toLowerCase()
     };
+    if (numeroCartao) {
+        payload.numeroCartao = numeroCartao;
+    }
 
     const resposta = await apiPost('/api/checkout', payload);
 
     if (resposta.status === 201 && resposta.dados && resposta.dados.pedido) {
+        const pedApi = resposta.dados.pedido;
+        const idFinal = pedApi.protocolo || gerarIdPedido();
         const pedido = {
-            id: gerarIdPedido(),
+            id: idFinal,
+            protocolo: idFinal,
             data: new Date().toISOString(),
             total: total,
-            status: 'Processando',
+            status: pedApi.status || 'Aprovado',
             itens: carrinho,
             frete: freteSelecionado ? freteSelecionado.valor : 0,
             desconto: valorDesconto || 0,
-            pagamento: metodo
+            pagamento: metodo,
+            cep: cep
         };
         salvarPedidoLocal(pedido);
         localStorage.removeItem('carrinho');
         window.location.href = 'sucesso-pedido.html';
         return false;
     } else if (resposta.status === 400) {
-        alert('Faltam dados para o checkout.');
+        alert(resposta.mensagem || 'Dados incompletos para finalizar o pedido.');
     } else if (resposta.status === 402) {
-        alert('Cartão recusado (termina em 0000).');
+        alert(resposta.mensagem || 'Cartão recusado pela operadora.');
     } else if (resposta.status === 404) {
-        alert('Um dos produtos não está mais disponível.');
+        alert(resposta.mensagem || 'Um dos produtos não está mais disponível.');
     } else if (resposta.status === 422) {
-        alert('Estoque insuficiente para algum item.');
+        alert(resposta.mensagem || 'Estoque insuficiente para algum item.');
     } else {
         alert(resposta.mensagem || 'Erro ao finalizar a compra.');
     }
@@ -817,6 +905,72 @@ async function cancelarPedido(pedidoId) {
     }
 }
 
+function carregarDetalhesPedido() {
+    const container = document.getElementById('detalhes-pedido-conteudo');
+    if (!container) return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const idPedido = urlParams.get('id');
+
+    const tituloEl = document.getElementById('pedido-detalhe-titulo');
+    if (tituloEl && idPedido) {
+        tituloEl.innerText = `Detalhes do Pedido #${idPedido}`;
+    }
+
+    const pedidos = JSON.parse(localStorage.getItem('pedidos')) || [];
+    const pedido = pedidos.find(p => String(p.id) === String(idPedido) || String(p.protocolo) === String(idPedido));
+
+    if (!pedido) return;
+
+    const itensContainer = document.getElementById('pedido-detalhe-itens');
+    if (itensContainer && pedido.itens && pedido.itens.length > 0) {
+        let htmlItens = '';
+        for (let item of pedido.itens) {
+            const precoFormatado = Number(item.preco || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            htmlItens += `
+                <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
+                    <div class="d-flex align-items-center gap-3">
+                        <img src="${item.imagem || 'assets/img/nintendo switch lite.jpg'}" alt="${item.nome}" style="width: 60px; height: 60px; object-fit: contain;">
+                        <div>
+                            <h6 class="mb-0 fw-bold">${item.nome}</h6>
+                            <small class="text-muted">Quantidade: ${item.quantidade}</small>
+                        </div>
+                    </div>
+                    <span class="fw-bold">${precoFormatado}</span>
+                </div>
+            `;
+        }
+        itensContainer.innerHTML = htmlItens;
+    }
+
+    const statusBadge = document.getElementById('pedido-detalhe-status');
+    if (statusBadge) {
+        statusBadge.innerText = pedido.status || 'Processando';
+        if (pedido.status === 'Cancelado') {
+            statusBadge.className = 'badge bg-danger p-2 fs-6';
+        } else if (pedido.status === 'Entregue' || pedido.status === 'Aprovado') {
+            statusBadge.className = 'badge bg-success p-2 fs-6';
+        } else {
+            statusBadge.className = 'badge bg-warning text-dark p-2 fs-6';
+        }
+    }
+
+    const totalEl = document.getElementById('pedido-detalhe-total');
+    if (totalEl) {
+        totalEl.innerText = Number(pedido.total || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    const pagamentoEl = document.getElementById('pedido-detalhe-pagamento');
+    if (pagamentoEl && pedido.pagamento) {
+        pagamentoEl.innerText = `Forma de Pagamento: ${pedido.pagamento}`;
+    }
+
+    const cepEl = document.getElementById('pedido-detalhe-cep');
+    if (cepEl && pedido.cep) {
+        cepEl.innerText = `Entrega para o CEP: ${pedido.cep}`;
+    }
+}
+
 // Detecta página para carregar pedidos
 if (document.getElementById('lista-pedidos')) {
     carregarPedidos();
@@ -849,6 +1003,10 @@ document.addEventListener('DOMContentLoaded', () => {
         carregarEnderecos();
     }
 
+    if (document.getElementById('detalhes-pedido-conteudo')) {
+        carregarDetalhesPedido();
+    }
+
     if (document.getElementById('perfilNome')) {
         const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado'));
         if (usuarioLogado) {
@@ -857,6 +1015,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (document.getElementById('perfilTelefone')) {
                 document.getElementById('perfilTelefone').value = usuarioLogado.telefone || '';
             }
+        }
+    }
+
+    const numPedidoEl = document.getElementById('numeroPedidoSucesso');
+    if (numPedidoEl) {
+        const pedidos = JSON.parse(localStorage.getItem('pedidos')) || [];
+        if (pedidos.length > 0) {
+            const ultimo = pedidos[pedidos.length - 1];
+            numPedidoEl.innerText = '#' + (ultimo.protocolo || ultimo.id);
         }
     }
 });
