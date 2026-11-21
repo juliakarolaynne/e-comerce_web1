@@ -407,6 +407,7 @@ function removerDoCarrinho(id) {
 let freteSelecionado = null;
 let cupomAplicado = null;
 let valorDesconto = 0;
+let enderecoEntregaSelecionado = null;
 
 async function calcularFrete() {
     const campoCep = document.getElementById('campoCep');
@@ -464,6 +465,39 @@ async function calcularFrete() {
 function selecionarFrete(valor, servico) {
     freteSelecionado = { valor: valor, servico: servico };
     atualizarTotalComFrete();
+}
+
+function carregarEnderecosNoCarrinho() {
+    const select = document.getElementById('selectEnderecoEntrega');
+    if (!select) return;
+    const enderecos = JSON.parse(localStorage.getItem('enderecos')) || [];
+    if (enderecos.length === 0) {
+        select.innerHTML = '<option value="">Nenhum endereço salvo (digite o CEP abaixo)</option>';
+        return;
+    }
+    let html = '<option value="">Selecione um endereço salvo...</option>';
+    for (let end of enderecos) {
+        html += `<option value="${end.id}">${end.nome} - ${end.rua}, ${end.numero} (${end.cidade}/${end.estado})</option>`;
+    }
+    html += '<option value="manual">Digitar outro CEP manualmente...</option>';
+    select.innerHTML = html;
+}
+
+function selecionarEnderecoSalvo(id) {
+    const campoCep = document.getElementById('campoCep');
+    if (!id || id === 'manual') {
+        enderecoEntregaSelecionado = null;
+        return;
+    }
+    const enderecos = JSON.parse(localStorage.getItem('enderecos')) || [];
+    const end = enderecos.find(e => String(e.id) === String(id));
+    if (end) {
+        enderecoEntregaSelecionado = end;
+        if (campoCep) {
+            campoCep.value = end.cep;
+            calcularFrete();
+        }
+    }
 }
 
 async function aplicarCupom() {
@@ -801,7 +835,8 @@ async function finalizarCompra(event) {
             frete: freteSelecionado ? freteSelecionado.valor : 0,
             desconto: valorDesconto || 0,
             pagamento: metodo,
-            cep: cep
+            cep: cep,
+            endereco: enderecoEntregaSelecionado || { cep: cep }
         };
         salvarPedidoLocal(pedido);
         localStorage.removeItem('carrinho');
@@ -965,9 +1000,13 @@ function carregarDetalhesPedido() {
         pagamentoEl.innerText = `Forma de Pagamento: ${pedido.pagamento}`;
     }
 
-    const cepEl = document.getElementById('pedido-detalhe-cep');
-    if (cepEl && pedido.cep) {
-        cepEl.innerText = `Entrega para o CEP: ${pedido.cep}`;
+    const endEl = document.getElementById('pedido-detalhe-endereco') || document.getElementById('pedido-detalhe-cep');
+    if (endEl) {
+        if (pedido.endereco && pedido.endereco.rua) {
+            endEl.innerHTML = `<strong>${pedido.endereco.nome || 'Endereço'}</strong><br>${pedido.endereco.rua}, ${pedido.endereco.numero}<br>${pedido.endereco.cidade} - ${pedido.endereco.estado}, CEP: ${pedido.endereco.cep}`;
+        } else if (pedido.cep) {
+            endEl.innerText = `Entrega para o CEP: ${pedido.cep}`;
+        }
     }
 }
 
@@ -983,6 +1022,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (document.getElementById('itens-carrinho')) {
         carregarCarrinho();
+        carregarEnderecosNoCarrinho();
     }
 
     if (document.getElementById('lista-produtos')) {
