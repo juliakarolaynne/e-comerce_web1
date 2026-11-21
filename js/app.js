@@ -203,17 +203,25 @@ async function carregarProdutos(termo = '', categoria = '') {
         return;
     }
 
+    const favoritos = JSON.parse(localStorage.getItem('favoritos')) || [];
+
     let html = '';
     for (let i = 0; i < produtos.length; i++) {
         const prod = produtos[i];
         const precoFormatado = Number(prod.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         const esgotado = prod.stock === 0;
+        const ehFavorito = favoritos.some(id => String(id) === String(prod.id));
 
         html += `
             <div class="col-12 col-md-6 col-lg-3 d-flex">
                 <div class="card w-100 border-0 shadow-sm rounded-4 p-2 ${esgotado ? 'opacity-75' : ''}">
                     <input type="hidden" name="produto_id" value="${prod.id}">
                     <div class="position-relative">
+                        <button type="button" class="btn btn-sm position-absolute top-0 start-0 m-2 rounded-circle p-1 bg-white shadow-sm border-0 d-flex align-items-center justify-content-center" 
+                            style="width: 34px; height: 34px; z-index: 2;" 
+                            onclick="alternarFavorito('${prod.id}')" title="${ehFavorito ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}">
+                            <span id="fav-icon-${prod.id}" style="font-size: 1.1rem; line-height: 1;">${ehFavorito ? '❤️' : '🤍'}</span>
+                        </button>
                         <img src="${prod.image}" class="card-img-top rounded-3" alt="${prod.name}" style="height: 200px; object-fit: contain;">
                         ${esgotado ? '<span class="badge bg-danger position-absolute top-0 end-0 m-2">Esgotado</span>' : ''}
                     </div>
@@ -241,6 +249,24 @@ async function carregarProdutos(termo = '', categoria = '') {
     }
 
     container.innerHTML = html;
+}
+
+function alternarFavorito(idProduto) {
+    let favoritos = JSON.parse(localStorage.getItem('favoritos')) || [];
+    const idStr = String(idProduto);
+    const index = favoritos.findIndex(id => String(id) === idStr);
+
+    const iconeEl = document.getElementById(`fav-icon-${idProduto}`);
+
+    if (index > -1) {
+        favoritos.splice(index, 1);
+        if (iconeEl) iconeEl.innerText = '🤍';
+    } else {
+        favoritos.push(idStr);
+        if (iconeEl) iconeEl.innerText = '❤️';
+    }
+
+    localStorage.setItem('favoritos', JSON.stringify(favoritos));
 }
 
 function adicionarAoCarrinho(id, nome, preco, imagem) {
