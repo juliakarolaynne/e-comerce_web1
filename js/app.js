@@ -222,7 +222,9 @@ async function carregarProdutos(termo = '', categoria = '') {
                             onclick="alternarFavorito('${prod.id}')" title="${ehFavorito ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}">
                             <span id="fav-icon-${prod.id}" style="font-size: 1.1rem; line-height: 1;">${ehFavorito ? '❤️' : '🤍'}</span>
                         </button>
-                        <img src="${prod.image}" class="card-img-top rounded-3" alt="${prod.name}" style="height: 200px; object-fit: contain;">
+                        <img src="${prod.image}" class="card-img-top rounded-3 ${esgotado ? '' : 'cursor-grab'}" alt="${prod.name}" 
+                            style="height: 200px; object-fit: contain; cursor: ${esgotado ? 'default' : 'grab'};"
+                            ${esgotado ? '' : `draggable="true" ondragstart="iniciarArrasteProduto(event, '${prod.id}', '${prod.name.replace(/'/g, "\\'")}', ${prod.price}, '${prod.image}')"`}>
                         ${esgotado ? '<span class="badge bg-danger position-absolute top-0 end-0 m-2">Esgotado</span>' : ''}
                     </div>
                     <div class="card-body d-flex flex-column p-3">
@@ -267,6 +269,43 @@ function alternarFavorito(idProduto) {
     }
 
     localStorage.setItem('favoritos', JSON.stringify(favoritos));
+}
+
+function iniciarArrasteProduto(event, id, nome, preco, imagem) {
+    const dados = JSON.stringify({ id, nome, preco, imagem });
+    event.dataTransfer.setData('text/plain', dados);
+    event.dataTransfer.effectAllowed = 'copy';
+}
+
+function configurarDragAndDropCarrinho() {
+    const iconeCarrinhoLink = document.querySelector('.cart-link-wrapper');
+    if (!iconeCarrinhoLink) return;
+
+    iconeCarrinhoLink.addEventListener('dragover', (event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'copy';
+        iconeCarrinhoLink.classList.add('bg-warning', 'rounded', 'p-1');
+    });
+
+    iconeCarrinhoLink.addEventListener('dragleave', () => {
+        iconeCarrinhoLink.classList.remove('bg-warning', 'rounded', 'p-1');
+    });
+
+    iconeCarrinhoLink.addEventListener('drop', (event) => {
+        event.preventDefault();
+        iconeCarrinhoLink.classList.remove('bg-warning', 'rounded', 'p-1');
+
+        try {
+            const dataStr = event.dataTransfer.getData('text/plain');
+            if (!dataStr) return;
+            const item = JSON.parse(dataStr);
+            if (item && item.id) {
+                adicionarAoCarrinho(item.id, item.nome, item.preco, item.imagem);
+            }
+        } catch (e) {
+            console.error('Erro no drop do carrinho:', e);
+        }
+    });
 }
 
 function adicionarAoCarrinho(id, nome, preco, imagem) {
@@ -1045,6 +1084,7 @@ document.addEventListener('DOMContentLoaded', () => {
     aplicarTemaSalvo();
     atualizarCabecalhoUsuario();
     atualizarCabecalhoCarrinho();
+    configurarDragAndDropCarrinho();
 
     if (document.getElementById('itens-carrinho')) {
         carregarCarrinho();
